@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Discover Genres - Winsome</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "surface-container-lowest": "#ffffff",
+                    "on-tertiary-fixed-variant": "#00522c",
+                    "on-error-container": "#93000a",
+                    "on-tertiary-fixed": "#00210f",
+                    "inverse-on-surface": "#ffeced",
+                    "on-primary": "#ffffff",
+                    "surface-container-highest": "#fadbdd",
+                    "surface": "#fff8f7",
+                    "on-secondary-fixed": "#400012",
+                    "on-secondary": "#ffffff",
+                    "primary-container": "#e31758",
+                    "error-container": "#ffdad6",
+                    "on-background": "#281719",
+                    "tertiary-fixed-dim": "#6cdc96",
+                    "primary-fixed-dim": "#ffb2bb",
+                    "on-tertiary-container": "#f6fff4",
+                    "surface-variant": "#fadbdd",
+                    "surface-dim": "#f2d3d5",
+                    "secondary-fixed": "#ffd9dd",
+                    "on-secondary-fixed-variant": "#881a36",
+                    "on-primary-fixed-variant": "#910033",
+                    "tertiary-fixed": "#89f9b0",
+                    "surface-container-low": "#fff0f0",
+                    "on-surface": "#281719",
+                    "background": "#fff8f7",
+                    "primary": "#b80043",
+                    "on-tertiary": "#ffffff",
+                    "on-surface-variant": "#5c3f43",
+                    "on-primary-container": "#fffbff",
+                    "inverse-surface": "#3f2b2d",
+                    "outline-variant": "#e4bdc1",
+                    "tertiary-container": "#00864c",
+                    "surface-tint": "#bd0045",
+                    "surface-bright": "#fff8f7",
+                    "inverse-primary": "#ffb2bb",
+                    "tertiary": "#006a3b",
+                    "secondary-fixed-dim": "#ffb2bb",
+                    "on-error": "#ffffff",
+                    "secondary": "#a8344d",
+                    "error": "#ba1a1a",
+                    "surface-container-high": "#ffe1e3",
+                    "secondary-container": "#fd748c",
+                    "on-primary-fixed": "#400012",
+                    "surface-container": "#ffe9ea",
+                    "primary-fixed": "#ffd9dd",
+                    "on-secondary-container": "#720528",
+                    "outline": "#906f72"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.25rem",
+                    "lg": "0.5rem",
+                    "xl": "0.75rem",
+                    "full": "9999px"
+            },
+            "spacing": {
+                    "xl": "32px",
+                    "sm": "8px",
+                    "margin": "24px",
+                    "md": "16px",
+                    "gutter": "16px",
+                    "base": "8px",
+                    "xs": "4px",
+                    "lg": "24px"
+            },
+            "fontFamily": {
+                    "body-md": ["Inter"],
+                    "headline-md": ["Inter"],
+                    "headline-lg": ["Inter"],
+                    "label-md": ["Inter"],
+                    "body-lg": ["Inter"]
+            },
+            "fontSize": {
+                    "body-md": ["14px", {"lineHeight": "20px", "fontWeight": "400"}],
+                    "headline-md": ["24px", {"lineHeight": "32px", "fontWeight": "600"}],
+                    "headline-lg": ["32px", {"lineHeight": "40px", "fontWeight": "700"}],
+                    "label-md": ["12px", {"lineHeight": "16px", "letterSpacing": "0.5px", "fontWeight": "500"}],
+                    "body-lg": ["16px", {"lineHeight": "24px", "fontWeight": "400"}]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+            display: inline-block;
+            vertical-align: middle;
+        }
+    </style>
+<style>
+    body {
+      min-height: 100dvh;
+    }
+  </style>
+</head>
+<body class="bg-background text-on-background font-body-md min-h-screen">
+<!-- TopAppBar -->
+<header class="fixed top-0 left-0 w-full z-50 flex items-center justify-between px-4 h-16 bg-white/90 dark:bg-zinc-950/90 backdrop-blur-md border-b border-rose-100 dark:border-zinc-800 shadow-sm shadow-zinc-200/50 dark:shadow-none">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded-full overflow-hidden bg-surface-container-high active:scale-95 transition-transform duration-200">
+<img alt="User profile" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuA0kF_D5RRqkGX9UurAu8FCIIs4OG-KrqIlgijfcg4qOP-avseyOBIU3kgXOBw2BM_pD_lD9E3JzZ4FMn0kQhUaWxLLmgWkGkC0egPm6e49WC30em6cMlr9TV4jh8B_KLN2vG7YA5qitj7DAof3qBR4LY8pUg6kc5__P1y_2OzzSKg4b3yioGiiibYGf4WB5tvmvOe3DW0fA8zeDffH16Xk75zwfnqhz_XErSbbv0gN475VS9PmWtBfyXojrN3KHJ03KPRol5zJWO8"/>
+</div>
+</div>
+<h1 class="text-xl font-bold tracking-tight text-rose-600 dark:text-rose-500 font-headline-md">Discover Genres</h1>
+<div class="flex items-center gap-4">
+<button class="text-rose-600 dark:text-rose-500 hover:opacity-80 transition-opacity active:scale-95 duration-200">
+<span class="material-symbols-outlined" data-icon="search">search</span>
+</button>
+<button class="text-rose-600 dark:text-rose-500 hover:opacity-80 transition-opacity active:scale-95 duration-200">
+<span class="material-symbols-outlined" data-icon="more_vert">more_vert</span>
+</button>
+</div>
+</header>
+<!-- Main Content Canvas -->
+<main class="pt-16 max-w-2xl mx-auto">
+<!-- Genre List - Full Width Boxes with Zero Vertical Gaps -->
+<section class="flex flex-col bg-surface-container-lowest">
+<!-- Motivation -->
+<div class="flex items-center justify-between px-margin py-md border-b border-surface-container-high hover:bg-surface-container-low transition-colors group cursor-pointer">
+<div class="flex items-center gap-md">
+<div class="w-10 h-10 flex items-center justify-center bg-primary-container/10 rounded-xl text-primary">
+<span class="material-symbols-outlined text-[24px]" data-icon="bolt">bolt</span>
+</div>
+<span class="font-body-lg text-on-surface font-semibold">Motivation</span>
+</div>
+<button class="w-8 h-8 flex items-center justify-center rounded-full bg-surface-container hover:bg-primary-container hover:text-on-primary-container transition-all active:scale-90">
+<span class="material-symbols-outlined text-[20px]" data-icon="add">add</span>
+</button>
+</div>
+<!-- Wealth -->
+<div class="flex items-center justify-between px-margin py-md border-b border-surface-container-high hover:bg-surface-container-low transition-colors group cursor-pointer">
+<div class="flex items-center gap-md">
+<div class="w-10 h-10 flex items-center justify-center bg-primary-container/10 rounded-xl text-primary">
+<span class="material-symbols-outlined text-[24px]" data-icon="payments">payments</span>
+</div>
+<span class="font-body-lg text-on-surface font-semibold">Wealth</span>
+</div>
+<button class="w-8 h-8 flex items-center justify-center rounded-full bg-surface-container hover:bg-primary-container hover:text-on-primary-container transition-all active:scale-90">
+<span class="material-symbols-outlined text-[20px]" data-icon="add">add</span>
+</button>
+</div>
+<!-- Fun -->
+<div class="flex items-center justify-between px-margin py-md border-b border-surface-container-high hover:bg-surface-container-low transition-colors group cursor-pointer">
+<div class="flex items-center gap-md">
+<div class="w-10 h-10 flex items-center justify-center bg-primary-container/10 rounded-xl text-primary">
+<span class="material-symbols-outlined text-[24px]" data-icon="celebration">celebration</span>
+</div>
+<span class="font-body-lg text-on-surface font-semibold">Fun</span>
+</div>
+<button class="w-8 h-8 flex items-center justify-center rounded-full bg-surface-container hover:bg-primary-container hover:text-on-primary-container transition-all active:scale-90">
+<span class="material-symbols-outlined text-[20px]" data-icon="add">add</span>
+</button>
+</div>
+<!-- Focus -->
+<div class="flex items-center justify-between px-margin py-md border-b border-surface-container-high hover:bg-surface-container-low transition-colors group cursor-pointer">
+<div class="flex items-center gap-md">
+<div class="w-10 h-10 flex items-center justify-center bg-primary-container/10 rounded-xl text-primary">
+<span class="material-symbols-outlined text-[24px]" data-icon="center_focus_strong">center_focus_strong</span>
+</div>
+<span class="font-body-lg text-on-surface font-semibold">Focus</span>
+</div>
+<button class="w-8 h-8 flex items-center justify-center rounded-full bg-surface-container hover:bg-primary-container hover:text-on-primary-container transition-all active:scale-90">
+<span class="material-symbols-outlined text-[20px]" data-icon="add">add</span>
+</button>
+</div>
+<!-- Health -->
+<div class="flex items-center justify-between px-margin py-md border-b border-surface-container-high hover:bg-surface-container-low transition-colors group cursor-pointer">
+<div class="flex items-center gap-md">
+<div class="w-10 h-10 flex items-center justify-center bg-primary-container/10 rounded-xl text-primary">
+<span class="material-symbols-outlined text-[24px]" data-icon="favorite">favorite</span>
+</div>
+<span class="font-body-lg text-on-surface font-semibold">Health</span>
+</div>
+<button class="w-8 h-8 flex items-center justify-center rounded-full bg-surface-container hover:bg-primary-container hover:text-on-primary-container transition-all active:scale-90">
+<span class="material-symbols-outlined text-[20px]" data-icon="add">add</span>
+</button>
+</div>
+<!-- Growth -->
+<div class="flex items-center justify-between px-margin py-md border-b border-surface-container-high hover:bg-surface-container-low transition-colors group cursor-pointer">
+<div class="flex items-center gap-md">
+<div class="w-10 h-10 flex items-center justify-center bg-primary-container/10 rounded-xl text-primary">
+<span class="material-symbols-outlined text-[24px]" data-icon="trending_up">trending_up</span>
+</div>
+<span class="font-body-lg text-on-surface font-semibold">Growth</span>
+</div>
+<button class="w-8 h-8 flex items-center justify-center rounded-full bg-surface-container hover:bg-primary-container hover:text-on-primary-container transition-all active:scale-90">
+<span class="material-symbols-outlined text-[20px]" data-icon="add">add</span>
+</button>
+</div>
+<!-- Relationships -->
+<div class="flex items-center justify-between px-margin py-md border-b border-surface-container-high hover:bg-surface-container-low transition-colors group cursor-pointer">
+<div class="flex items-center gap-md">
+<div class="w-10 h-10 flex items-center justify-center bg-primary-container/10 rounded-xl text-primary">
+<span class="material-symbols-outlined text-[24px]" data-icon="diversity_3">diversity_3</span>
+</div>
+<span class="font-body-lg text-on-surface font-semibold">Relationships</span>
+</div>
+<button class="w-8 h-8 flex items-center justify-center rounded-full bg-surface-container hover:bg-primary-container hover:text-on-primary-container transition-all active:scale-90">
+<span class="material-symbols-outlined text-[20px]" data-icon="add">add</span>
+</button>
+</div>
+<!-- Career -->
+<div class="flex items-center justify-between px-margin py-md border-b border-surface-container-high hover:bg-surface-container-low transition-colors group cursor-pointer">
+<div class="flex items-center gap-md">
+<div class="w-10 h-10 flex items-center justify-center bg-primary-container/10 rounded-xl text-primary">
+<span class="material-symbols-outlined text-[24px]" data-icon="work">work</span>
+</div>
+<span class="font-body-lg text-on-surface font-semibold">Career</span>
+</div>
+<button class="w-8 h-8 flex items-center justify-center rounded-full bg-surface-container hover:bg-primary-container hover:text-on-primary-container transition-all active:scale-90">
+<span class="material-symbols-outlined text-[20px]" data-icon="add">add</span>
+</button>
+</div>
+</section>
+</main>
+</body></html>

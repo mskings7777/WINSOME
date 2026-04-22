@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Add Personalities - Winsome</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "surface-container-lowest": "#ffffff",
+                        "on-tertiary-fixed-variant": "#00522c",
+                        "on-error-container": "#93000a",
+                        "on-tertiary-fixed": "#00210f",
+                        "inverse-on-surface": "#ffeced",
+                        "on-primary": "#ffffff",
+                        "surface-container-highest": "#fadbdd",
+                        "surface": "#fff8f7",
+                        "on-secondary-fixed": "#400012",
+                        "on-secondary": "#ffffff",
+                        "primary-container": "#e31758",
+                        "error-container": "#ffdad6",
+                        "on-background": "#281719",
+                        "tertiary-fixed-dim": "#6cdc96",
+                        "primary-fixed-dim": "#ffb2bb",
+                        "on-tertiary-container": "#f6fff4",
+                        "surface-variant": "#fadbdd",
+                        "surface-dim": "#f2d3d5",
+                        "secondary-fixed": "#ffd9dd",
+                        "on-secondary-fixed-variant": "#881a36",
+                        "on-primary-fixed-variant": "#910033",
+                        "tertiary-fixed": "#89f9b0",
+                        "surface-container-low": "#fff0f0",
+                        "on-surface": "#281719",
+                        "background": "#fff8f7",
+                        "primary": "#b80043",
+                        "on-tertiary": "#ffffff",
+                        "on-surface-variant": "#5c3f43",
+                        "on-primary-container": "#fffbff",
+                        "inverse-surface": "#3f2b2d",
+                        "outline-variant": "#e4bdc1",
+                        "tertiary-container": "#00864c",
+                        "surface-tint": "#bd0045",
+                        "surface-bright": "#fff8f7",
+                        "inverse-primary": "#ffb2bb",
+                        "tertiary": "#006a3b",
+                        "secondary-fixed-dim": "#ffb2bb",
+                        "on-error": "#ffffff",
+                        "secondary": "#a8344d",
+                        "error": "#ba1a1a",
+                        "surface-container-high": "#ffe1e3",
+                        "secondary-container": "#fd748c",
+                        "on-primary-fixed": "#400012",
+                        "surface-container": "#ffe9ea",
+                        "primary-fixed": "#ffd9dd",
+                        "on-secondary-container": "#720528",
+                        "outline": "#906f72"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "xl": "32px",
+                        "sm": "8px",
+                        "margin": "24px",
+                        "md": "16px",
+                        "gutter": "16px",
+                        "base": "8px",
+                        "xs": "4px",
+                        "lg": "24px"
+                    },
+                    "fontFamily": {
+                        "body-md": ["Inter"],
+                        "headline-md": ["Inter"],
+                        "headline-lg": ["Inter"],
+                        "label-md": ["Inter"],
+                        "body-lg": ["Inter"]
+                    },
+                    "fontSize": {
+                        "body-md": ["14px", {"lineHeight": "20px", "fontWeight": "400"}],
+                        "headline-md": ["24px", {"lineHeight": "32px", "fontWeight": "600"}],
+                        "headline-lg": ["32px", {"lineHeight": "40px", "fontWeight": "700"}],
+                        "label-md": ["12px", {"lineHeight": "16px", "letterSpacing": "0.5px", "fontWeight": "500"}],
+                        "body-lg": ["16px", {"lineHeight": "24px", "fontWeight": "400"}]
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+            -webkit-font-smoothing: antialiased;
+        }
+    </style>
+</head>
+<body class="bg-background text-on-background min-h-screen">
+<!-- TopAppBar Section -->
+<header class="fixed top-0 left-0 w-full z-50 flex items-center justify-between px-4 h-16 bg-white/90 dark:bg-zinc-950/90 backdrop-blur-md border-b border-rose-100 dark:border-zinc-800 shadow-sm">
+<div class="flex items-center gap-3">
+<button class="active:scale-95 transition-transform">
+<span class="material-symbols-outlined text-rose-600 dark:text-rose-500" data-icon="arrow_back">arrow_back</span>
+</button>
+</div>
+<h1 class="text-xl font-bold tracking-tight text-on-surface">Add Personalities</h1>
+<div class="flex items-center gap-2">
+<button class="active:scale-95 transition-transform duration-200 hover:opacity-80">
+<span class="material-symbols-outlined text-rose-600 dark:text-rose-500" data-icon="search">search</span>
+</button>
+<button class="active:scale-95 transition-transform duration-200 hover:opacity-80">
+<span class="material-symbols-outlined text-rose-600 dark:text-rose-500" data-icon="more_vert">more_vert</span>
+</button>
+</div>
+</header>
+<!-- Main Content Canvas -->
+<main class="pt-16 w-full">
+<!-- Personalities List - Zero vertical gaps, full width -->
+<div class="flex flex-col">
+<!-- Personality Row 1 -->
+<div class="flex items-center justify-between px-gutter py-md bg-surface hover:bg-surface-container-low transition-colors duration-150 border-b border-rose-50">
+<div class="flex items-center gap-md">
+<div class="w-12 h-12 rounded-full overflow-hidden border-2 border-primary-container/20">
+<img class="w-full h-full object-cover" data-alt="Professional profile photo of a woman with warm smile" src="https://lh3.googleusercontent.com/aida-public/AB6AXuA41MtxIrZf7qqPntZjAcQ0Fcs0GBYn_XYc5RAMXkAq3mz40LrhL9NtdKYB_1CWXk0JsGAPtJdjNxw-Dwa7IzVAEDlUUtdv3v6X1M-yshMhdZajMl93z4AgWVJ2lkwiVi97ytpD0Dbx1-YRLMD0OyZpJJtCJkhoDmBsvT04i7yXskILYqR5HPEIiT1_7P8tkbmRMNy9gOR1IoD5Ov8zEsC3LOf-2JGu5Si-h7AKr1z_tfFfKlZ-1nB4Ovq_DCkCYpDeBHzaaFcO0SE"/>
+</div>
+<div class="flex flex-col">
+<span class="font-body-lg text-body-lg font-bold text-on-surface">Elena Vance</span>
+<span class="font-label-md text-label-md text-primary px-2 py-0.5 bg-primary/10 rounded-full w-fit">Hard Discipline</span>
+</div>
+</div>
+<button class="w-10 h-10 rounded-full flex items-center justify-center bg-primary-container text-on-primary-container active:scale-90 transition-transform">
+<span class="material-symbols-outlined" data-icon="add">add</span>
+</button>
+</div>
+<!-- Personality Row 2 (Added State) -->
+<div class="flex items-center justify-between px-gutter py-md bg-surface hover:bg-surface-container-low transition-colors duration-150 border-b border-rose-50">
+<div class="flex items-center gap-md">
+<div class="w-12 h-12 rounded-full overflow-hidden border-2 border-primary-container/20">
+<img class="w-full h-full object-cover" data-alt="Close-up of a distinguished middle-aged man" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBTVu3-dokYL1yACLcJiaL1WPzNFTAMCeuXsYtSj4IHP51nYbPteS7Pf6nQUKs7F0ghrHW0RO6-pTe59f_wW1mYMh-3HjCexC52mItvya9uW2mdSHNUyyGAsK4betZUkftFvfXwEhHsV9AE_4RCOwITZ2sumuV6XrTntmEkrA4WGOrm7CDshCXVhA3vNHD2DckyI__ZpLHC84jZmjk897EOCBJGl0mhC9kEwkt8PzTEZGRur3icO9Nu8uYnmJNWk9AWJY0GfNCrPaM"/>
+</div>
+<div class="flex flex-col">
+<span class="font-body-lg text-body-lg font-bold text-on-surface">Marcus Thorne</span>
+<span class="font-label-md text-label-md text-primary px-2 py-0.5 bg-primary/10 rounded-full w-fit">Deep Focus</span>
+</div>
+</div>
+<span class="text-primary font-bold text-sm px-4">Added</span>
+</div>
+<!-- Personality Row 3 -->
+<div class="flex items-center justify-between px-gutter py-md bg-surface hover:bg-surface-container-low transition-colors duration-150 border-b border-rose-50">
+<div class="flex items-center gap-md">
+<div class="w-12 h-12 rounded-full overflow-hidden border-2 border-primary-container/20">
+<img class="w-full h-full object-cover" data-alt="Vibrant portrait of a creative professional woman" src="https://lh3.googleusercontent.com/aida-public/AB6AXuB1bl0_-OT1D28vDNe9nAPXiVFyaFxwEzgCYycNfEYOA5o3vigRU0Nw9VfcrWeeckqEn1TGUayLQgwlFK_yDkeovFY9yWDASdXlgpObHtdlHqGiANi70OVC73wRkiDfILc0_BJLndHXZYMa-eG54yDxPA37hz0L_NIdIRcDg68Ej9S4jG2MrzKZEkqVC7HZAwbPkW9jRH8xb9pPkgVPvtIk-p2errBrWkYeJqz5C4N-U3UGxrSy3KSFL1X6L7rwgc2j4c7E29C80sc"/>
+</div>
+<div class="flex flex-col">
+<span class="font-body-lg text-body-lg font-bold text-on-surface">Aria Sterling</span>
+<span class="font-label-md text-label-md text-primary px-2 py-0.5 bg-primary/10 rounded-full w-fit">Creative Flow</span>
+</div>
+</div>
+<button class="w-10 h-10 rounded-full flex items-center justify-center bg-primary-container text-on-primary-container active:scale-90 transition-transform">
+<span class="material-symbols-outlined" data-icon="add">add</span>
+</button>
+</div>
+<!-- Personality Row 4 (Added State) -->
+<div class="flex items-center justify-between px-gutter py-md bg-surface hover:bg-surface-container-low transition-colors duration-150 border-b border-rose-50">
+<div class="flex items-center gap-md">
+<div class="w-12 h-12 rounded-full overflow-hidden border-2 border-primary-container/20">
+<img class="w-full h-full object-cover" data-alt="Professional headshot of a smiling man" src="https://lh3.googleusercontent.com/aida-public/AB6AXuA7-RvKXH2uiOw2Ii2IoH5KlBUZdKoZdqEu5lSnRoMmDofb-Pc7LobdvSKG1uDd1nmyJj776d6oMCZyCRZlaJugdwZcueelIHgTHfHoANEqyQuB-cOx_qg7iH4zpgKdZuk__byVjAmT7QzdpOB9KTpQ2Ul2xugZ_sPoqyem6PDkhCnkWjqZbmuD-D7VzGJxU8IvlHKvWdtYeXVYCVwNQRcUK9_C0oLNAS4F4WhkUxrTSU0KhO4HniWSxXvchhPU_JUbR-92kju33RQ"/>
+</div>
+<div class="flex flex-col">
+<span class="font-body-lg text-body-lg font-bold text-on-surface">Julian Chen</span>
+<span class="font-label-md text-label-md text-primary px-2 py-0.5 bg-primary/10 rounded-full w-fit">Strategic Growth</span>
+</div>
+</div>
+<span class="text-primary font-bold text-sm px-4">Added</span>
+</div>
+<!-- Personality Row 5 -->
+<div class="flex items-center justify-between px-gutter py-md bg-surface hover:bg-surface-container-low transition-colors duration-150 border-b border-rose-50">
+<div class="flex items-center gap-md">
+<div class="w-12 h-12 rounded-full overflow-hidden border-2 border-primary-container/20">
+<img class="w-full h-full object-cover" data-alt="Confident businesswoman with direct gaze" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDQKIYcb1gJ62t0Qh3NwHIlPxRUV0FIHZU06ASAKNzSo3MV6VVuAou8RWpn-09NEvJgWpUlNmz9xa10QUqEeb8vGSYmuPQvPkQA8QZPGc1a72h008kWMpsbV0WiLRGHIWgy_BsxvEnj4eBlz_JV_MxJJtcC2m3lpsIjFV8GzABTHGdtqIhcoVJzN6QKFBl4Ocvl0WP88QTcUBsea-4snR81jo_UhIPb80CCUsvTLUdtmf6O4WOglp7vIXC8xPkkoVdQLv1tif2zcK4"/>
+</div>
+<div class="flex flex-col">
+<span class="font-body-lg text-body-lg font-bold text-on-surface">Sarah Kaine</span>
+<span class="font-label-md text-label-md text-primary px-2 py-0.5 bg-primary/10 rounded-full w-fit">Quiet Leadership</span>
+</div>
+</div>
+<button class="w-10 h-10 rounded-full flex items-center justify-center bg-primary-container text-on-primary-container active:scale-90 transition-transform">
+<span class="material-symbols-outlined" data-icon="add">add</span>
+</button>
+</div>
+<!-- Personality Row 6 -->
+<div class="flex items-center justify-between px-gutter py-md bg-surface hover:bg-surface-container-low transition-colors duration-150">
+<div class="flex items-center gap-md">
+<div class="w-12 h-12 rounded-full overflow-hidden border-2 border-primary-container/20">
+<img class="w-full h-full object-cover" data-alt="Young man with artistic look" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCtdiwxRIQghBd0oxv3OUKNJrMviGsOc5Ci4bv22Hau28xJ0yIAAaSF6HNMRsr01GKlY0QTH_1e3xb3DfN7xntEkKA4v2ubpwqRZxm8W5h6qUbhYlneHleLwu47VsSKWiTa7k4958Jh2nWOe7P-qrRw1cruUO01ILt80HJZJAnSCJLtYCLFokFez0YiEo6DqGyHQWdml5IRAQ6KOGZPTFMC51jl6AzTEQWrWdCcUdbfgo8KMplQk1jj7ILXLb6qv7IOB4JqkBrl028"/>
+</div>
+<div class="flex flex-col">
+<span class="font-body-lg text-body-lg font-bold text-on-surface">Leo Fontaine</span>
+<span class="font-label-md text-label-md text-primary px-2 py-0.5 bg-primary/10 rounded-full w-fit">Bold Innovation</span>
+</div>
+</div>
+<button class="w-10 h-10 rounded-full flex items-center justify-center bg-primary-container text-on-primary-container active:scale-90 transition-transform">
+<span class="material-symbols-outlined" data-icon="add">add</span>
+</button>
+</div>
+</div>
+<!-- Descriptive CTA (Subtle) -->
+<div class="px-gutter py-xl text-center">
+<button class="text-primary font-bold hover:underline">View All 124 Personalities</button>
+</div>
+</main>
+</body></html>

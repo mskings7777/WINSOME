@@ -1,1101 +1,1616 @@
 import { StatusBar } from 'expo-status-bar';
-import { useState } from 'react';
+import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome';
 import {
+  faArrowLeft,
+  faBolt,
+  faBullseye,
+  faChartLine,
+  faChevronRight,
+  faCircleInfo,
+  faCircleQuestion,
+  faCompass,
+  faCreditCard,
+  faDollarSign,
+  faEllipsisVertical,
+  faFaceLaughBeam,
+  faGear,
+  faHeart,
+  faHouse,
+  faLock,
+  faMagnifyingGlass,
+  faMicrophone,
+  faPlus,
+  faRotate,
+  faShieldHalved,
+  faUserGroup
+} from '@fortawesome/free-solid-svg-icons';
+import { IconDefinition } from '@fortawesome/fontawesome-svg-core';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import {
+  Animated,
+  BackHandler,
   FlatList,
   Modal,
+  Platform,
   Pressable,
   SafeAreaView,
   ScrollView,
   StyleSheet,
   Text,
   TextInput,
-  useWindowDimensions,
+  StatusBar as NativeStatusBar,
   View
 } from 'react-native';
 
 import { initialGenres, initialPersonalities, personalityOptions } from './src/data';
-import { Genre, Personality, Rarity } from './src/types';
+import { Genre, Personality } from './src/types';
+
+type Screen = 'home' | 'chat' | 'discover' | 'genre' | 'personalities' | 'settings';
+
+type MenuTarget = 'discover' | 'personalities' | 'settings' | 'home';
 
 const palette = {
-  bg: '#0B1020',
-  secondary: '#12182B',
-  card: '#161D33',
-  violet: '#8B5CF6',
-  softGlow: '#A78BFA',
-  indigo: '#6366F1',
-  pink: '#EC4899',
-  text: '#F8FAFC',
-  secondaryText: '#A8B0C5',
-  muted: '#7C859D',
-  success: '#22C55E',
-  warning: '#F59E0B',
-  error: '#EF4444'
+  background: 'white',
+  surface: '#ffffff',
+  surfaceLow: '#fff0f0',
+  surfaceMid: 'white',
+  surfaceHigh: '#ffe1e3',
+  surfaceHighest: '#fadbdd',
+  text: '#281719',
+  textMuted: '#5c3f43',
+  outline: '#906f72',
+  outlineSoft: '#e4bdc1',
+  primary: '#b80043',
+  primaryContainer: '#e31758',
+  onPrimary: '#ffffff',
+  tertiary: '#006a3b',
+  error: '#ba1a1a'
 };
 
-const rarityColor: Record<Rarity, string> = {
-  Core: palette.indigo,
-  Rare: palette.softGlow,
-  Epic: palette.pink
+const appTopInset = Platform.OS === 'android' ? NativeStatusBar.currentHeight ?? 0 : 0;
+const appBottomInset = Platform.OS === 'android' ? 45 : 0;
+const chatBottomInset = 20;
+const bottomNavHeight = 68;
+
+const genreIcon: Record<string, IconDefinition> = {
+  motivation: faBolt,
+  wealth: faDollarSign,
+  fun: faFaceLaughBeam,
+  'emotional-support': faHeart,
+  productivity: faBullseye
 };
+
+function slugify(value: string) {
+  return value.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+}
+
+const catalogPersonalities: Personality[] = [
+  ...initialPersonalities,
+  ...Object.entries(personalityOptions).flatMap(([genreId, options]) =>
+    options.map((option) => ({
+      ...option,
+      genreId,
+      id: `${genreId}-${slugify(option.name)}`
+    }))
+  )
+];
 
 export default function App() {
-  const { width } = useWindowDimensions();
-  const isWide = width >= 820;
-  const [genres, setGenres] = useState<Genre[]>(initialGenres);
-  const [personalities, setPersonalities] = useState<Personality[]>(initialPersonalities);
+  const [screen, setScreen] = useState<Screen>('home');
   const [selectedGenreId, setSelectedGenreId] = useState(initialGenres[0]?.id ?? 'motivation');
   const [selectedPersonalityId, setSelectedPersonalityId] = useState(
-    initialPersonalities[0]?.id ?? 'iron-coach'
+    initialPersonalities[0]?.id ?? catalogPersonalities[0]?.id ?? ''
   );
-  const [genreModalVisible, setGenreModalVisible] = useState(false);
-  const [personalityModalVisible, setPersonalityModalVisible] = useState(false);
-  const [customGenreName, setCustomGenreName] = useState('');
+  const [addedPersonalityIds, setAddedPersonalityIds] = useState<string[]>(
+    initialPersonalities.map((personality) => personality.id)
+  );
+  const [menuVisible, setMenuVisible] = useState(false);
 
-  const selectedGenre = genres.find((genre) => genre.id === selectedGenreId) ?? genres[0];
-  const selectedPersonality = personalities.find(
-    (personality) => personality.id === selectedPersonalityId
+  const addedPersonalities = useMemo(
+    () =>
+      addedPersonalityIds
+        .map((id) => catalogPersonalities.find((personality) => personality.id === id))
+        .filter((personality): personality is Personality => Boolean(personality)),
+    [addedPersonalityIds]
   );
 
-  function selectGenre(genreId: string) {
-    setSelectedGenreId(genreId);
-    const firstPersonality = personalities.find((personality) => personality.genreId === genreId);
-    if (firstPersonality) {
-      setSelectedPersonalityId(firstPersonality.id);
-    }
-  }
+  const selectedGenre = initialGenres.find((genre) => genre.id === selectedGenreId) ?? initialGenres[0];
+  const selectedPersonality =
+    catalogPersonalities.find((personality) => personality.id === selectedPersonalityId) ??
+    addedPersonalities[0];
 
-  function addGenre(genre: Genre) {
-    if (!genres.some((item) => item.id === genre.id)) {
-      setGenres((current) => [...current, genre]);
-    }
-    setSelectedGenreId(genre.id);
-    setGenreModalVisible(false);
-  }
-
-  function addCustomGenre() {
-    const name = customGenreName.trim();
-    if (!name) {
+  function openMenuTarget(target: MenuTarget) {
+    setMenuVisible(false);
+    if (target === 'home') {
+      setScreen('home');
       return;
     }
+    setScreen(target);
+  }
 
-    const id = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
-    addGenre({
-      id: id || `genre-${Date.now()}`,
-      name,
-      icon: '✧',
-      description: 'A custom lane for new personalities.',
-      accent: palette.softGlow
+  function openChat(personalityId: string) {
+    setSelectedPersonalityId(personalityId);
+    setScreen('chat');
+  }
+
+  function openGenre(genreId: string) {
+    setSelectedGenreId(genreId);
+    setScreen('genre');
+  }
+
+  function openBottomNav(target: 'home' | 'discover' | 'personalities') {
+    setMenuVisible(false);
+    setScreen(target);
+  }
+
+  function addPersonality(personality: Personality) {
+    setAddedPersonalityIds((current) =>
+      current.includes(personality.id) ? current : [...current, personality.id]
+    );
+  }
+
+  function goBack() {
+    if (screen === 'chat' || screen === 'discover' || screen === 'personalities' || screen === 'settings') {
+      setScreen('home');
+      return;
+    }
+    if (screen === 'genre') {
+      setScreen('discover');
+    }
+  }
+
+  useEffect(() => {
+    const subscription = BackHandler.addEventListener('hardwareBackPress', () => {
+      if (screen === 'chat') {
+        setScreen('home');
+        return true;
+      }
+
+      if (screen === 'genre') {
+        setScreen('discover');
+        return true;
+      }
+
+      if (screen === 'discover' || screen === 'personalities' || screen === 'settings') {
+        setScreen('home');
+        return true;
+      }
+
+      return false;
     });
-    setCustomGenreName('');
-  }
 
-  function addPersonality(option: Omit<Personality, 'id' | 'genreId'>, targetGenreId = selectedGenreId) {
-    const id = `${targetGenreId}-${option.name.toLowerCase().replace(/[^a-z0-9]+/g, '-')}-${Date.now()}`;
-    const next = { ...option, id, genreId: targetGenreId };
-    setPersonalities((current) => [...current, next]);
-    setSelectedGenreId(targetGenreId);
-    setSelectedPersonalityId(id);
-    setPersonalityModalVisible(false);
-  }
+    return () => subscription.remove();
+  }, [screen]);
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <StatusBar style="light" />
-      <View style={styles.shell}>
-        <View style={styles.header}>
-          <View>
-            <Text style={styles.brand}>Winsome</Text>
-            <Text style={styles.subtitle}>Genres become contacts. Personalities become chats.</Text>
-          </View>
-          <View style={styles.countBadge}>
-            <Text style={styles.countNumber}>{personalities.length}</Text>
-            <Text style={styles.countLabel}>collected</Text>
-          </View>
-        </View>
-
-        {isWide ? (
-          <View style={[styles.workspace, styles.workspaceWide]}>
-            <View style={[styles.leftPane, styles.leftPaneWide]}>
-              <GenreList
-                genres={genres}
-                onAddPersonality={() => setPersonalityModalVisible(true)}
-                selectedGenreId={selectedGenreId}
-                personalities={personalities}
-                onAddGenre={() => setGenreModalVisible(true)}
-                onSelectPersonality={setSelectedPersonalityId}
-                onSelectGenre={selectGenre}
-                scrollEnabled
-                selectedPersonalityId={selectedPersonalityId}
-              />
-            </View>
-
-            <View style={[styles.rightPane, styles.rightPaneWide]}>
-              <ChatPreview personality={selectedPersonality} genre={selectedGenre} />
-            </View>
-          </View>
-        ) : (
-          <ScrollView contentContainerStyle={styles.mobileWorkspace} showsVerticalScrollIndicator={false}>
-            <View style={styles.mobileGenrePane}>
-              <GenreList
-                genres={genres}
-                onAddPersonality={() => setPersonalityModalVisible(true)}
-                selectedGenreId={selectedGenreId}
-                personalities={personalities}
-                onAddGenre={() => setGenreModalVisible(true)}
-                onSelectPersonality={setSelectedPersonalityId}
-                onSelectGenre={selectGenre}
-                scrollEnabled={false}
-                selectedPersonalityId={selectedPersonalityId}
-              />
-            </View>
-
-            <View style={styles.mobileChatPane}>
-              <ChatPreview personality={selectedPersonality} genre={selectedGenre} />
-            </View>
-          </ScrollView>
-        )}
-      </View>
-
-      <GenreModal
-        customGenreName={customGenreName}
-        genres={initialGenres}
-        onAddCustomGenre={addCustomGenre}
-        onChangeCustomGenreName={setCustomGenreName}
-        onClose={() => setGenreModalVisible(false)}
-        onSelectGenre={addGenre}
-        visible={genreModalVisible}
+    <SafeAreaView style={[styles.safeArea, screen === 'chat' && styles.safeAreaChatInset]}>
+      <StatusBar style="dark" />
+      {screen === 'home' && (
+        <HomeScreen
+          addedPersonalities={addedPersonalities}
+          onMenuPress={() => setMenuVisible(true)}
+          onOpenChat={openChat}
+        />
+      )}
+      {screen === 'chat' && (
+        <ChatScreen
+          onBack={goBack}
+          onMenuPress={() => setMenuVisible(true)}
+          personality={selectedPersonality}
+        />
+      )}
+      {screen === 'discover' && (
+        <DiscoverScreen
+          genres={initialGenres}
+          onBack={goBack}
+          onMenuPress={() => setMenuVisible(true)}
+          onOpenGenre={openGenre}
+        />
+      )}
+      {screen === 'genre' && selectedGenre && (
+        <GenrePersonalitiesScreen
+          addedPersonalityIds={addedPersonalityIds}
+          genre={selectedGenre}
+          onAddPersonality={addPersonality}
+          onBack={goBack}
+          onMenuPress={() => setMenuVisible(true)}
+        />
+      )}
+      {screen === 'personalities' && (
+        <PersonalitiesScreen
+          addedPersonalityIds={addedPersonalityIds}
+          onAddPersonality={addPersonality}
+          onBack={goBack}
+          onMenuPress={() => setMenuVisible(true)}
+          onOpenChat={openChat}
+        />
+      )}
+      {screen === 'settings' && (
+        <SettingsScreen onBack={goBack} onMenuPress={() => setMenuVisible(true)} />
+      )}
+      <MenuModal
+        onClose={() => setMenuVisible(false)}
+        onSelect={openMenuTarget}
+        visible={menuVisible}
       />
-
-      <PersonalityModal
-        genres={genres}
-        onClose={() => setPersonalityModalVisible(false)}
-        onSelect={addPersonality}
-        selectedGenreId={selectedGenreId}
-        visible={personalityModalVisible}
-      />
+      {screen !== 'chat' ? <BottomNav activeScreen={screen} onSelect={openBottomNav} /> : null}
+      {screen === 'chat' ? <View pointerEvents="none" style={styles.chatBottomFill} /> : null}
     </SafeAreaView>
   );
 }
 
-function GenreList({
-  genres,
-  onAddGenre,
-  onAddPersonality,
-  onSelectPersonality,
-  onSelectGenre,
-  personalities,
-  scrollEnabled,
-  selectedGenreId,
-  selectedPersonalityId
+function TopBar({
+  back,
+  onBack,
+  onMenuPress,
+  title
 }: {
-  genres: Genre[];
-  onAddGenre: () => void;
-  onAddPersonality: () => void;
-  onSelectPersonality: (personalityId: string) => void;
-  onSelectGenre: (genreId: string) => void;
-  personalities: Personality[];
-  scrollEnabled: boolean;
-  selectedGenreId: string;
-  selectedPersonalityId: string;
+  back?: boolean;
+  onBack?: () => void;
+  onMenuPress: () => void;
+  title: string;
 }) {
   return (
-    <View style={styles.panel}>
-      <View style={styles.panelHeader}>
-        <Text style={styles.panelTitle}>Genres</Text>
-        <Text style={styles.panelCaption}>Tap a genre to reveal its personalities</Text>
+    <View style={styles.topBar}>
+      <View style={styles.topBarSide}>
+        {back ? (
+          <Pressable accessibilityRole="button" onPress={onBack} style={styles.iconButton}>
+            <FontAwesomeIcon color={palette.primary} icon={faArrowLeft} size={18} />
+          </Pressable>
+        ) : (
+          <Text style={styles.brand}>Winsome</Text>
+        )}
       </View>
-      <FlatList
-        contentContainerStyle={styles.genreList}
-        data={genres}
-        keyExtractor={(item) => item.id}
-        scrollEnabled={scrollEnabled}
-        renderItem={({ item }) => {
-          const isSelected = selectedGenreId === item.id;
-          const genrePersonalities = personalities.filter(
-            (personality) => personality.genreId === item.id
-          );
-
-          return (
-            <View style={styles.genreGroup}>
-              <Pressable
-                accessibilityRole="button"
-                onPress={() => onSelectGenre(item.id)}
-                style={[
-                  styles.genreCard,
-                  isSelected && styles.genreCardActive,
-                  { borderColor: isSelected ? item.accent : '#25304E' }
-                ]}
-              >
-                <View style={[styles.genreIcon, { backgroundColor: `${item.accent}24` }]}>
-                  <Text style={styles.genreIconText}>{item.icon}</Text>
-                </View>
-                <View style={styles.genreCopy}>
-                  <Text style={styles.genreName}>{item.name}</Text>
-                  <Text numberOfLines={2} style={styles.genreDescription}>
-                    {item.description}
-                  </Text>
-                </View>
-                <Text style={[styles.expandCue, isSelected && styles.expandCueActive]}>
-                  {isSelected ? '−' : '+'}
-                </Text>
-              </Pressable>
-
-              {isSelected && (
-                <View style={styles.inlinePersonalityPanel}>
-                  {genrePersonalities.length === 0 ? (
-                    <View style={styles.inlineEmpty}>
-                      <Text style={styles.emptyTitle}>No personalities yet</Text>
-                      <Text style={styles.emptyText}>Add one under {item.name}.</Text>
-                    </View>
-                  ) : (
-                    genrePersonalities.map((personality) => (
-                      <PersonalityCard
-                        key={personality.id}
-                        onPress={() => onSelectPersonality(personality.id)}
-                        personality={personality}
-                        selected={selectedPersonalityId === personality.id}
-                      />
-                    ))
-                  )}
-
-                  <Pressable
-                    accessibilityRole="button"
-                    onPress={onAddPersonality}
-                    style={styles.inlineAddButton}
-                  >
-                    <Text style={styles.addButtonIcon}>+</Text>
-                    <Text style={styles.addButtonText}>Add Personality</Text>
-                  </Pressable>
-                </View>
-              )}
-            </View>
-          );
-        }}
-      />
-      <Pressable accessibilityRole="button" onPress={onAddGenre} style={styles.addButton}>
-        <Text style={styles.addButtonIcon}>+</Text>
-        <Text style={styles.addButtonText}>Add Genre</Text>
-      </Pressable>
+      <Text numberOfLines={1} style={styles.topBarTitle}>
+        {title}
+      </Text>
+      <View style={[styles.topBarSide, styles.topBarSideRight]}>
+        <Pressable accessibilityRole="button" onPress={onMenuPress} style={styles.iconButton}>
+          <FontAwesomeIcon color={palette.primary} icon={faEllipsisVertical} size={20} />
+        </Pressable>
+      </View>
     </View>
   );
 }
 
-function PersonalityCard({
-  onPress,
-  personality,
-  selected
+function HomeScreen({
+  addedPersonalities,
+  onMenuPress,
+  onOpenChat
 }: {
-  onPress: () => void;
-  personality: Personality;
-  selected: boolean;
+  addedPersonalities: Personality[];
+  onMenuPress: () => void;
+  onOpenChat: (personalityId: string) => void;
 }) {
   return (
-    <Pressable
-      accessibilityRole="button"
-      onPress={onPress}
-      style={[
-        styles.personalityCard,
-        selected && styles.personalityCardActive,
-        { shadowColor: personality.glow }
-      ]}
-    >
-      <View style={styles.personalityTopRow}>
-        <GlowAvatar personality={personality} />
-        <View style={styles.personalityCopy}>
-          <View style={styles.nameRow}>
-            <Text style={styles.personalityName}>{personality.name}</Text>
-            <Text style={[styles.rarity, { color: rarityColor[personality.rarity] }]}>
-              {personality.rarity}
-            </Text>
-          </View>
-          <Text style={styles.personalityTag}>{personality.tag}</Text>
-        </View>
-      </View>
-      <Text style={styles.personalityIntro}>{personality.intro}</Text>
-    </Pressable>
+    <View style={styles.screen}>
+      <TopBar onMenuPress={onMenuPress} title="" />
+      {addedPersonalities.length === 0 ? (
+        <EmptyState
+          title="No personalities added"
+          text="Open Discover from the menu and add a personality to start chatting."
+        />
+      ) : (
+        <FlatList
+          contentContainerStyle={styles.listContentWithNav}
+          data={addedPersonalities}
+          keyExtractor={(item) => item.id}
+          renderItem={({ item }) => (
+            <PersonalityListRow
+              action={<FontAwesomeIcon color={palette.outline} icon={faChevronRight} size={18} />}
+              onPress={() => onOpenChat(item.id)}
+              personality={item}
+            />
+          )}
+        />
+      )}
+    </View>
   );
 }
 
-function ChatPreview({ genre, personality }: { genre?: Genre; personality?: Personality }) {
+function ChatScreen({
+  onBack,
+  onMenuPress,
+  personality
+}: {
+  onBack: () => void;
+  onMenuPress: () => void;
+  personality?: Personality;
+}) {
   if (!personality) {
     return (
-      <View style={styles.chatPanel}>
-        <View style={styles.emptyChat}>
-          <Text style={styles.emptyTitle}>Select a personality</Text>
-          <Text style={styles.emptyText}>The static chat preview appears here.</Text>
-        </View>
+      <View style={styles.screen}>
+        <TopBar back onBack={onBack} onMenuPress={onMenuPress} title="Chat" />
+        <EmptyState title="Select a personality" text="Open a saved personality from the main screen." />
       </View>
     );
   }
 
   return (
-    <View style={styles.chatPanel}>
-      <View style={styles.chatHeader}>
-        <GlowAvatar personality={personality} size={52} />
-        <View style={styles.chatHeaderCopy}>
-          <Text style={styles.chatName}>{personality.name}</Text>
-          <Text style={styles.chatStatus}>{genre?.name ?? 'Genre'} • static preview</Text>
+    <View style={styles.screen}>
+      <View style={styles.chatTopBar}>
+        <Pressable accessibilityRole="button" onPress={onBack} style={styles.iconButton}>
+          <FontAwesomeIcon color={palette.primary} icon={faArrowLeft} size={18} />
+        </Pressable>
+        <Avatar personality={personality} size={40} />
+        <View style={styles.chatTitleWrap}>
+          <Text numberOfLines={1} style={styles.chatTitle}>
+            {personality.name}
+          </Text>
+          <Text style={styles.onlineText}>Online</Text>
         </View>
-        <View style={[styles.onlineDot, { backgroundColor: genre?.accent ?? palette.violet }]} />
+        <Pressable accessibilityRole="button" onPress={onMenuPress} style={styles.iconButton}>
+          <FontAwesomeIcon color={palette.primary} icon={faEllipsisVertical} size={20} />
+        </Pressable>
       </View>
 
-      <ScrollView contentContainerStyle={styles.messages}>
-        <MessageBubble align="left" text={`You opened the ${personality.tag} card.`} />
-        <MessageBubble align="left" text={personality.intro} highlighted />
-        <MessageBubble align="right" text="Show me how this chat would feel." />
+      <ScrollView contentContainerStyle={styles.chatBody}>
+        <View style={styles.datePill}>
+          <Text style={styles.datePillText}>TODAY</Text>
+        </View>
+        <MessageBubble text={personality.intro} time="08:14 AM" />
         <MessageBubble
-          align="left"
-          text="This MVP is only a UI preview. AI responses and message sending come later."
+          outgoing
+          text={`I want to work with your ${personality.tag.toLowerCase()} style.`}
+          time="08:16 AM"
         />
+        <MessageBubble
+          text={`Good. I will keep this chat focused on ${personality.tag.toLowerCase()} and practical next steps.`}
+          time="08:17 AM"
+        />
+        <View style={styles.milestoneCard}>
+          <View style={styles.milestoneIcon}>
+            <FontAwesomeIcon color={palette.tertiary} icon={faChartLine} size={18} />
+          </View>
+          <View style={styles.milestoneCopy}>
+            <Text style={styles.milestoneTitle}>Weekly Milestone</Text>
+            <Text style={styles.milestoneText}>You have checked in with 4/5 planned sessions.</Text>
+          </View>
+          <View style={styles.progressTrack}>
+            <View style={styles.progressFill} />
+          </View>
+        </View>
       </ScrollView>
 
       <View style={styles.inputBar}>
         <TextInput
           editable={false}
-          placeholder="Message input is static for MVP"
-          placeholderTextColor={palette.muted}
-          style={styles.staticInput}
+          placeholder={`Message ${personality.name}...`}
+          placeholderTextColor={palette.outline}
+          style={styles.messageInput}
         />
-        <View style={styles.staticSend}>
-          <Text style={styles.staticSendText}>↗</Text>
+        <View style={styles.micButton}>
+          <FontAwesomeIcon color={palette.onPrimary} icon={faMicrophone} size={17} />
         </View>
       </View>
+    </View>
+  );
+}
+
+function DiscoverScreen({
+  genres,
+  onBack,
+  onMenuPress,
+  onOpenGenre
+}: {
+  genres: Genre[];
+  onBack: () => void;
+  onMenuPress: () => void;
+  onOpenGenre: (genreId: string) => void;
+}) {
+  return (
+    <View style={styles.screen}>
+      <TopBar back onBack={onBack} onMenuPress={onMenuPress} title="Discover Genres" />
+      <FlatList
+        contentContainerStyle={styles.listContentWithNav}
+        data={genres}
+        keyExtractor={(item) => item.id}
+        renderItem={({ item }) => (
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => onOpenGenre(item.id)}
+            style={styles.genreRow}
+          >
+            <View style={styles.genreLeft}>
+              <View style={styles.genreIconBox}>
+                <FontAwesomeIcon
+                  color={palette.primary}
+                  icon={genreIcon[item.id] ?? faCompass}
+                  size={18}
+                />
+              </View>
+              <View style={styles.genreCopy}>
+                <Text style={styles.genreName}>{item.name}</Text>
+                <Text numberOfLines={1} style={styles.genreDescription}>
+                  {item.description}
+                </Text>
+              </View>
+            </View>
+            <View style={styles.addCircle}>
+              <FontAwesomeIcon color={palette.primary} icon={faChevronRight} size={16} />
+            </View>
+          </Pressable>
+        )}
+      />
+    </View>
+  );
+}
+
+function GenrePersonalitiesScreen({
+  addedPersonalityIds,
+  genre,
+  onAddPersonality,
+  onBack,
+  onMenuPress
+}: {
+  addedPersonalityIds: string[];
+  genre: Genre;
+  onAddPersonality: (personality: Personality) => void;
+  onBack: () => void;
+  onMenuPress: () => void;
+}) {
+  const personalities = catalogPersonalities.filter((personality) => personality.genreId === genre.id);
+
+  return (
+    <View style={styles.screen}>
+      <TopBar back onBack={onBack} onMenuPress={onMenuPress} title="Add Personalities" />
+      <FlatList
+        contentContainerStyle={styles.listContentWithNav}
+        data={personalities}
+        keyExtractor={(item) => item.id}
+        ListHeaderComponent={
+          <View style={styles.genreHeader}>
+            <Text style={styles.genreHeaderTitle}>{genre.name}</Text>
+            <Text style={styles.genreHeaderText}>{genre.description}</Text>
+          </View>
+        }
+        renderItem={({ item }) => {
+          const added = addedPersonalityIds.includes(item.id);
+          return (
+            <PersonalityListRow
+              action={
+                added ? (
+                  <Text style={styles.addedText}>Added</Text>
+                ) : (
+                  <Pressable
+                    accessibilityRole="button"
+                    onPress={() => onAddPersonality(item)}
+                    style={styles.addButtonRound}
+                  >
+                    <FontAwesomeIcon color={palette.onPrimary} icon={faPlus} size={17} />
+                  </Pressable>
+                )
+              }
+              personality={item}
+            />
+          );
+        }}
+      />
+    </View>
+  );
+}
+
+function PersonalitiesScreen({
+  addedPersonalityIds,
+  onAddPersonality,
+  onBack,
+  onMenuPress,
+  onOpenChat
+}: {
+  addedPersonalityIds: string[];
+  onAddPersonality: (personality: Personality) => void;
+  onBack: () => void;
+  onMenuPress: () => void;
+  onOpenChat: (personalityId: string) => void;
+}) {
+  const [search, setSearch] = useState('');
+  const query = search.trim().toLowerCase();
+  const filteredPersonalities = catalogPersonalities.filter((personality) => {
+    const genre = initialGenres.find((item) => item.id === personality.genreId);
+    if (!query) {
+      return true;
+    }
+    return [personality.name, personality.tag, genre?.name, genre?.description, genre?.id]
+      .filter(Boolean)
+      .some((value) => value!.toLowerCase().includes(query));
+  });
+
+  return (
+    <View style={styles.screen}>
+      <TopBar back onBack={onBack} onMenuPress={onMenuPress} title="Personalities" />
+      <FlatList
+        contentContainerStyle={styles.listContentWithNav}
+        data={filteredPersonalities}
+        keyExtractor={(item) => item.id}
+        ListEmptyComponent={<EmptyState title="No matches" text="Try a genre like Motivation or Wealth." />}
+        ListHeaderComponent={
+          <View style={styles.searchHeader}>
+            <View style={styles.searchBox}>
+              <FontAwesomeIcon color={palette.outline} icon={faMagnifyingGlass} size={16} />
+              <TextInput
+                autoCapitalize="none"
+                onChangeText={setSearch}
+                placeholder="Search by genre or personality"
+                placeholderTextColor={palette.outline}
+                style={styles.searchInput}
+                value={search}
+              />
+            </View>
+          </View>
+        }
+        renderItem={({ item }) => {
+          const added = addedPersonalityIds.includes(item.id);
+          const genre = initialGenres.find((candidate) => candidate.id === item.genreId);
+          return (
+            <PersonalityListRow
+              action={
+                added ? (
+                  <Text style={styles.addedText}>Added</Text>
+                ) : (
+                  <Pressable
+                    accessibilityRole="button"
+                    onPress={() => onAddPersonality(item)}
+                    style={styles.addButtonRound}
+                  >
+                    <FontAwesomeIcon color={palette.onPrimary} icon={faPlus} size={17} />
+                  </Pressable>
+                )
+              }
+              detail={genre?.name}
+              onPress={added ? () => onOpenChat(item.id) : undefined}
+              personality={item}
+            />
+          );
+        }}
+      />
+    </View>
+  );
+}
+
+function SettingsScreen({
+  onBack,
+  onMenuPress
+}: {
+  onBack: () => void;
+  onMenuPress: () => void;
+}) {
+  return (
+    <View style={styles.screen}>
+      <TopBar back onBack={onBack} onMenuPress={onMenuPress} title="Winsome" />
+      <ScrollView contentContainerStyle={styles.settingsBody}>
+        <Text style={styles.settingsTitle}>Settings</Text>
+        <View style={styles.profileCard}>
+          <View style={styles.profileAvatar}>
+            <Text style={styles.profileAvatarText}>JV</Text>
+          </View>
+          <View style={styles.profileCopy}>
+            <Text style={styles.profileName}>Julianne Vane</Text>
+            <Text style={styles.profileEmail}>julianne.vane@winsome-app.io</Text>
+          </View>
+          <Pressable accessibilityRole="button" style={styles.editProfileButton}>
+            <Text style={styles.editProfileText}>Edit</Text>
+          </Pressable>
+        </View>
+
+        <SettingsGroup title="Account">
+          <SettingsRow icon={faLock} title="Security & Password" subtitle="Update credentials and 2FA" />
+          <SettingsRow icon={faCreditCard} title="Subscription Plan" subtitle="Manage your Pro membership" />
+          <SettingsRow icon={faRotate} title="Connected Apps" subtitle="Sync future integrations" />
+        </SettingsGroup>
+
+        <SettingsGroup title="Preferences">
+          <SwitchRow enabled title="Push Notifications" subtitle="Daily updates and alerts" />
+          <SwitchRow title="Dark Mode" subtitle="System default applied" />
+          <SwitchRow enabled title="Email Summary" subtitle="Weekly performance report" />
+        </SettingsGroup>
+
+        <View style={styles.settingsTiles}>
+          <SmallSettingsCard
+            icon={faShieldHalved}
+            title="Privacy"
+            text="Manage data visibility and tracking permissions."
+          />
+          <SmallSettingsCard
+            icon={faCircleQuestion}
+            title="Help & Support"
+            text="Access documentation or contact support."
+          />
+          <SmallSettingsCard icon={faCircleInfo} title="About" text="Version 0.1.0. Terms and licenses." />
+        </View>
+
+        <View style={styles.dangerBox}>
+          <View style={styles.dangerCopy}>
+            <Text style={styles.dangerTitle}>Danger Zone</Text>
+            <Text style={styles.dangerText}>Sign out or delete account data.</Text>
+          </View>
+          <Pressable accessibilityRole="button" style={styles.signOutButton}>
+            <Text style={styles.signOutText}>Sign Out</Text>
+          </Pressable>
+        </View>
+      </ScrollView>
+    </View>
+  );
+}
+
+function PersonalityListRow({
+  action,
+  detail,
+  onPress,
+  personality
+}: {
+  action: React.ReactNode;
+  detail?: string;
+  onPress?: () => void;
+  personality: Personality;
+}) {
+  return (
+    <Pressable
+      accessibilityRole={onPress ? 'button' : undefined}
+      disabled={!onPress}
+      onPress={onPress}
+      style={styles.personalityRow}
+    >
+      <View style={styles.personalityLeft}>
+        <Avatar personality={personality} />
+        <View style={styles.personalityCopy}>
+          <Text numberOfLines={1} style={styles.personalityName}>
+            {personality.name}
+          </Text>
+          <View style={styles.tagPill}>
+            <Text numberOfLines={1} style={styles.tagText}>
+              {personality.tag}
+            </Text>
+          </View>
+          {detail ? <Text style={styles.personalityDetail}>{detail}</Text> : null}
+        </View>
+      </View>
+      {action}
+    </Pressable>
+  );
+}
+
+function BottomNav({
+  activeScreen,
+  onSelect
+}: {
+  activeScreen: Screen;
+  onSelect: (target: 'home' | 'discover' | 'personalities') => void;
+}) {
+  const activeTab =
+    activeScreen === 'genre' ? 'discover' : activeScreen === 'chat' || activeScreen === 'settings' ? '' : activeScreen;
+
+  return (
+    <View style={styles.bottomNav}>
+      <BottomNavItem
+        active={activeTab === 'home'}
+        icon={faHouse}
+        label="Home"
+        onPress={() => onSelect('home')}
+      />
+      <BottomNavItem
+        active={activeTab === 'discover'}
+        icon={faCompass}
+        label="Discover"
+        onPress={() => onSelect('discover')}
+      />
+      <BottomNavItem
+        active={activeTab === 'personalities'}
+        icon={faUserGroup}
+        label="Personality"
+        onPress={() => onSelect('personalities')}
+      />
+    </View>
+  );
+}
+
+function BottomNavItem({
+  active,
+  icon,
+  label,
+  onPress
+}: {
+  active: boolean;
+  icon: IconDefinition;
+  label: string;
+  onPress: () => void;
+}) {
+  const iconProgress = useRef(new Animated.Value(active ? 1 : 0)).current;
+
+  useEffect(() => {
+    Animated.timing(iconProgress, {
+      duration: 240,
+      toValue: active ? 1 : 0,
+      useNativeDriver: false
+    }).start();
+  }, [active, iconProgress]);
+
+  const animatedIconWrapStyle = {
+    backgroundColor: iconProgress.interpolate({
+      inputRange: [0, 1],
+      outputRange: ['rgba(184, 0, 67, 0)', 'rgba(184, 0, 67, 0.09)']
+    }),
+    paddingHorizontal: iconProgress.interpolate({
+      inputRange: [0, 1],
+      outputRange: [10, 18]
+    }),
+    paddingVertical: iconProgress.interpolate({
+      inputRange: [0, 1],
+      outputRange: [7, 11]
+    })
+  };
+
+  return (
+    <Pressable
+      accessibilityRole="button"
+      onPress={onPress}
+      style={styles.bottomNavItem}
+    >
+      <View style={styles.bottomNavIconSlot}>
+        <Animated.View style={[styles.bottomNavIconWrap, animatedIconWrapStyle]}>
+          <FontAwesomeIcon color={active ? palette.primary : palette.textMuted} icon={icon} size={19} />
+        </Animated.View>
+      </View>
+      <Text style={[styles.bottomNavLabel, active && styles.bottomNavLabelActive]}>{label}</Text>
+    </Pressable>
+  );
+}
+
+function Avatar({ personality, size = 52 }: { personality: Personality; size?: number }) {
+  return (
+    <View
+      style={[
+        styles.avatar,
+        {
+          height: size,
+          width: size
+        }
+      ]}
+    >
+      <Text style={styles.avatarText}>{personality.avatar}</Text>
     </View>
   );
 }
 
 function MessageBubble({
-  align,
-  highlighted,
-  text
+  outgoing,
+  text,
+  time
 }: {
-  align: 'left' | 'right';
-  highlighted?: boolean;
+  outgoing?: boolean;
   text: string;
+  time: string;
 }) {
-  const isRight = align === 'right';
   return (
-    <View style={[styles.messageRow, isRight && styles.messageRowRight]}>
-      <View
-        style={[
-          styles.messageBubble,
-          isRight ? styles.messageBubbleRight : styles.messageBubbleLeft,
-          highlighted && styles.messageBubbleHighlighted
-        ]}
-      >
-        <Text style={styles.messageText}>{text}</Text>
+    <View style={[styles.messageRow, outgoing && styles.messageRowOutgoing]}>
+      <View style={[styles.messageBubble, outgoing ? styles.messageOutgoing : styles.messageIncoming]}>
+        <Text style={[styles.messageText, outgoing && styles.messageTextOutgoing]}>{text}</Text>
       </View>
+      <Text style={styles.messageTime}>{time}</Text>
     </View>
   );
 }
 
-function GlowAvatar({ personality, size = 48 }: { personality: Personality; size?: number }) {
-  return (
-    <View
-      style={[
-        styles.avatarGlow,
-        {
-          borderColor: personality.glow,
-          height: size,
-          shadowColor: personality.glow,
-          width: size
-        }
-      ]}
-    >
-      <Text style={[styles.avatarText, size > 50 && styles.avatarTextLarge]}>
-        {personality.avatar}
-      </Text>
-    </View>
-  );
-}
-
-function GenreModal({
-  customGenreName,
-  genres,
-  onAddCustomGenre,
-  onChangeCustomGenreName,
-  onClose,
-  onSelectGenre,
-  visible
-}: {
-  customGenreName: string;
-  genres: Genre[];
-  onAddCustomGenre: () => void;
-  onChangeCustomGenreName: (value: string) => void;
-  onClose: () => void;
-  onSelectGenre: (genre: Genre) => void;
-  visible: boolean;
-}) {
-  return (
-    <Modal animationType="fade" transparent visible={visible}>
-      <View style={styles.modalBackdrop}>
-        <View style={styles.modalSheet}>
-          <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>Add Genre</Text>
-            <Pressable accessibilityRole="button" onPress={onClose} style={styles.closeButton}>
-              <Text style={styles.closeText}>×</Text>
-            </Pressable>
-          </View>
-          {genres.map((genre) => (
-            <Pressable
-              accessibilityRole="button"
-              key={genre.id}
-              onPress={() => onSelectGenre(genre)}
-              style={styles.modalOption}
-            >
-              <Text style={styles.modalIcon}>{genre.icon}</Text>
-              <View style={styles.modalOptionCopy}>
-                <Text style={styles.modalOptionTitle}>{genre.name}</Text>
-                <Text style={styles.modalOptionText}>{genre.description}</Text>
-              </View>
-            </Pressable>
-          ))}
-          <View style={styles.customGenreBox}>
-            <Text style={styles.customLabel}>Custom genre</Text>
-            <View style={styles.customInputRow}>
-              <TextInput
-                onChangeText={onChangeCustomGenreName}
-                placeholder="e.g. Creativity"
-                placeholderTextColor={palette.muted}
-                style={styles.customInput}
-                value={customGenreName}
-              />
-              <Pressable
-                accessibilityRole="button"
-                onPress={onAddCustomGenre}
-                style={styles.smallActionButton}
-              >
-                <Text style={styles.smallActionText}>Add</Text>
-              </Pressable>
-            </View>
-          </View>
-        </View>
-      </View>
-    </Modal>
-  );
-}
-
-function PersonalityModal({
-  genres,
+function MenuModal({
   onClose,
   onSelect,
-  selectedGenreId,
   visible
 }: {
-  genres: Genre[];
   onClose: () => void;
-  onSelect: (option: Omit<Personality, 'id' | 'genreId'>, targetGenreId?: string) => void;
-  selectedGenreId: string;
+  onSelect: (target: MenuTarget) => void;
   visible: boolean;
 }) {
-  const selectedOptions = personalityOptions[selectedGenreId] ?? [];
-  const crossGenreOptions = Object.entries(personalityOptions)
-    .filter(([genreId]) => genreId !== selectedGenreId)
-    .flatMap(([genreId, options]) => options.slice(0, 1).map((option) => ({ genreId, option })));
-
   return (
     <Modal animationType="fade" transparent visible={visible}>
-      <View style={styles.modalBackdrop}>
-        <View style={styles.modalSheet}>
-          <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>Add Personality</Text>
-            <Pressable accessibilityRole="button" onPress={onClose} style={styles.closeButton}>
-              <Text style={styles.closeText}>×</Text>
-            </Pressable>
-          </View>
-
-          <Text style={styles.modalSectionLabel}>Based on selected genre</Text>
-          {selectedOptions.map((option) => (
-            <PersonalityOption
-              key={option.name}
-              option={option}
-              onPress={() => onSelect(option, selectedGenreId)}
-            />
-          ))}
-
-          <Text style={styles.modalSectionLabel}>Across genres</Text>
-          {crossGenreOptions.map(({ genreId, option }) => {
-            const genre = genres.find((item) => item.id === genreId);
-            return (
-              <PersonalityOption
-                key={`${genreId}-${option.name}`}
-                genreName={genre?.name}
-                option={option}
-                onPress={() => onSelect(option, selectedGenreId)}
-              />
-            );
-          })}
+      <Pressable accessibilityRole="button" onPress={onClose} style={styles.menuBackdrop}>
+        <View style={styles.menuSheet}>
+          <MenuItem icon={faHouse} label="My Personalities" onPress={() => onSelect('home')} />
+          <MenuItem icon={faCompass} label="Discover" onPress={() => onSelect('discover')} />
+          <MenuItem icon={faUserGroup} label="Personality" onPress={() => onSelect('personalities')} />
+          <MenuItem icon={faGear} label="Settings" onPress={() => onSelect('settings')} />
         </View>
-      </View>
+      </Pressable>
     </Modal>
   );
 }
 
-function PersonalityOption({
-  genreName,
-  onPress,
-  option
+function MenuItem({
+  icon,
+  label,
+  onPress
 }: {
-  genreName?: string;
+  icon: IconDefinition;
+  label: string;
   onPress: () => void;
-  option: Omit<Personality, 'id' | 'genreId'>;
 }) {
   return (
-    <Pressable accessibilityRole="button" onPress={onPress} style={styles.modalOption}>
-      <View style={[styles.optionAvatar, { borderColor: option.glow }]}>
-        <Text style={styles.optionAvatarText}>{option.avatar}</Text>
+    <Pressable accessibilityRole="button" onPress={onPress} style={styles.menuItem}>
+      <FontAwesomeIcon color={palette.primary} icon={icon} size={16} />
+      <Text style={styles.menuItemText}>{label}</Text>
+    </Pressable>
+  );
+}
+
+function EmptyState({ text, title }: { text: string; title: string }) {
+  return (
+    <View style={styles.emptyState}>
+      <Text style={styles.emptyTitle}>{title}</Text>
+      <Text style={styles.emptyText}>{text}</Text>
+    </View>
+  );
+}
+
+function SettingsGroup({ children, title }: { children: React.ReactNode; title: string }) {
+  return (
+    <View style={styles.settingsGroup}>
+      <View style={styles.settingsGroupHeader}>
+        <Text style={styles.settingsGroupTitle}>{title}</Text>
       </View>
-      <View style={styles.modalOptionCopy}>
-        <Text style={styles.modalOptionTitle}>{option.name}</Text>
-        <Text style={styles.modalOptionText}>
-          {option.tag}
-          {genreName ? ` • from ${genreName}` : ''}
-        </Text>
+      {children}
+    </View>
+  );
+}
+
+function SettingsRow({
+  icon,
+  subtitle,
+  title
+}: {
+  icon: IconDefinition;
+  subtitle: string;
+  title: string;
+}) {
+  return (
+    <Pressable accessibilityRole="button" style={styles.settingsRow}>
+      <View style={styles.settingsIconBox}>
+        <FontAwesomeIcon color={palette.textMuted} icon={icon} size={16} />
       </View>
-      <Text style={[styles.rarity, { color: rarityColor[option.rarity] }]}>{option.rarity}</Text>
+      <View style={styles.settingsRowCopy}>
+        <Text style={styles.settingsRowTitle}>{title}</Text>
+        <Text style={styles.settingsRowSubtitle}>{subtitle}</Text>
+      </View>
+      <FontAwesomeIcon color={palette.outline} icon={faChevronRight} size={15} />
+    </Pressable>
+  );
+}
+
+function SwitchRow({
+  enabled,
+  subtitle,
+  title
+}: {
+  enabled?: boolean;
+  subtitle: string;
+  title: string;
+}) {
+  return (
+    <View style={styles.settingsRow}>
+      <View style={styles.settingsRowCopy}>
+        <Text style={styles.settingsRowTitle}>{title}</Text>
+        <Text style={styles.settingsRowSubtitle}>{subtitle}</Text>
+      </View>
+      <View style={[styles.switchTrack, enabled && styles.switchTrackEnabled]}>
+        <View style={[styles.switchKnob, enabled && styles.switchKnobEnabled]} />
+      </View>
+    </View>
+  );
+}
+
+function SmallSettingsCard({
+  icon,
+  text,
+  title
+}: {
+  icon: IconDefinition;
+  text: string;
+  title: string;
+}) {
+  return (
+    <Pressable accessibilityRole="button" style={styles.smallSettingsCard}>
+      <View style={styles.smallSettingsIcon}>
+        <FontAwesomeIcon color={palette.primary} icon={icon} size={18} />
+      </View>
+      <Text style={styles.smallSettingsTitle}>{title}</Text>
+      <Text style={styles.smallSettingsText}>{text}</Text>
     </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
   safeArea: {
-    backgroundColor: palette.bg,
+    backgroundColor: palette.background,
+    flex: 1,
+    paddingBottom: appBottomInset,
+    paddingTop: appTopInset
+  },
+  safeAreaChatInset: {
+    backgroundColor: '#fce4ec',
+    paddingBottom: chatBottomInset
+  },
+  chatBottomFill: {
+    backgroundColor: '#fce4ec',
+    bottom: 0,
+    height: 45,
+    left: 0,
+    position: 'absolute',
+    right: 0
+  },
+  screen: {
+    backgroundColor: palette.background,
     flex: 1
   },
-  shell: {
-    flex: 1,
-    padding: 16
+  listContentWithNav: {
+    paddingBottom: bottomNavHeight + 12
   },
-  header: {
+  topBar: {
     alignItems: 'center',
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 14
-  },
-  brand: {
-    color: palette.text,
-    fontSize: 31,
-    fontWeight: '900',
-    letterSpacing: 0
-  },
-  subtitle: {
-    color: palette.secondaryText,
-    fontSize: 13,
-    marginTop: 4
-  },
-  countBadge: {
-    alignItems: 'center',
-    backgroundColor: palette.secondary,
-    borderColor: '#293453',
-    borderRadius: 8,
-    borderWidth: 1,
-    minWidth: 74,
-    padding: 9
-  },
-  countNumber: {
-    color: palette.text,
-    fontSize: 19,
-    fontWeight: '900'
-  },
-  countLabel: {
-    color: palette.muted,
-    fontSize: 11,
-    fontWeight: '800'
-  },
-  workspace: {
-    flex: 1,
-    gap: 12
-  },
-  workspaceWide: {
-    flexDirection: 'row'
-  },
-  mobileWorkspace: {
-    gap: 12,
-    paddingBottom: 18
-  },
-  mobileGenrePane: {
-    minHeight: 560
-  },
-  mobileChatPane: {
-    minHeight: 460
-  },
-  leftPane: {
-    flex: 0.82,
-    minHeight: 180
-  },
-  middlePane: {
-    flex: 1,
-    minHeight: 260
-  },
-  rightPane: {
-    flex: 1.08,
-    minHeight: 360
-  },
-  leftPaneWide: {
-    flex: 0.92
-  },
-  rightPaneWide: {
-    flex: 1.08
-  },
-  panel: {
-    backgroundColor: palette.secondary,
-    borderColor: '#25304E',
-    borderRadius: 8,
-    borderWidth: 1,
-    flex: 1,
-    overflow: 'hidden'
-  },
-  panelHeader: {
-    borderBottomColor: '#25304E',
+    backgroundColor: palette.surface,
+    borderBottomColor: '#f4d7da',
     borderBottomWidth: 1,
-    padding: 14
-  },
-  panelTitle: {
-    color: palette.text,
-    fontSize: 19,
-    fontWeight: '900'
-  },
-  panelCaption: {
-    color: palette.muted,
-    fontSize: 12,
-    marginTop: 3
-  },
-  genreList: {
-    gap: 10,
-    padding: 12
-  },
-  genreGroup: {
-    gap: 8
-  },
-  genreCard: {
-    alignItems: 'center',
-    backgroundColor: palette.card,
-    borderRadius: 8,
-    borderWidth: 1,
     flexDirection: 'row',
-    gap: 11,
-    padding: 12
-  },
-  genreCardActive: {
-    backgroundColor: '#1D2440',
-    shadowColor: palette.softGlow,
-    shadowOpacity: 0.32,
+    height: 64,
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    shadowColor: '#8a7173',
+    shadowOffset: { height: 4, width: 0 },
+    shadowOpacity: 0.12,
     shadowRadius: 14
   },
-  genreIcon: {
+  topBarSide: {
     alignItems: 'center',
-    borderRadius: 8,
-    height: 44,
-    justifyContent: 'center',
-    width: 44
-  },
-  genreIconText: {
-    color: palette.text,
-    fontSize: 22,
-    fontWeight: '900'
-  },
-  genreCopy: {
-    flex: 1
-  },
-  genreName: {
-    color: palette.text,
-    fontSize: 15,
-    fontWeight: '900'
-  },
-  genreDescription: {
-    color: palette.secondaryText,
-    fontSize: 12,
-    lineHeight: 17,
-    marginTop: 3
-  },
-  expandCue: {
-    color: palette.muted,
-    fontSize: 24,
-    fontWeight: '900',
-    minWidth: 18,
-    textAlign: 'center'
-  },
-  expandCueActive: {
-    color: palette.softGlow
-  },
-  inlinePersonalityPanel: {
-    borderColor: '#2B3658',
-    borderLeftWidth: 2,
-    gap: 10,
-    marginLeft: 22,
-    paddingBottom: 4,
-    paddingLeft: 12
-  },
-  inlineEmpty: {
-    alignItems: 'center',
-    backgroundColor: '#10172A',
-    borderColor: '#2B3658',
-    borderRadius: 8,
-    borderWidth: 1,
-    padding: 16
-  },
-  inlineAddButton: {
-    alignItems: 'center',
-    backgroundColor: '#1C2440',
-    borderColor: '#2B3658',
-    borderRadius: 8,
-    borderWidth: 1,
     flexDirection: 'row',
-    gap: 8,
-    justifyContent: 'center',
-    minHeight: 48
+    minWidth: 88
   },
-  addButton: {
-    alignItems: 'center',
-    backgroundColor: '#1C2440',
-    borderTopColor: '#25304E',
-    borderTopWidth: 1,
-    flexDirection: 'row',
+  topBarSideRight: {
     gap: 8,
-    justifyContent: 'center',
-    minHeight: 56
+    justifyContent: 'flex-end'
   },
-  addButtonIcon: {
-    color: palette.softGlow,
+  brand: {
+    color: palette.primary,
     fontSize: 24,
     fontWeight: '900'
   },
-  addButtonText: {
-    color: palette.text,
-    fontSize: 15,
-    fontWeight: '900'
-  },
-  personalityList: {
-    gap: 12,
-    padding: 12
-  },
-  personalityCard: {
-    backgroundColor: palette.card,
-    borderColor: '#2B3658',
-    borderRadius: 8,
-    borderWidth: 1,
-    padding: 13,
-    shadowOffset: { height: 0, width: 0 },
-    shadowOpacity: 0.28,
-    shadowRadius: 12
-  },
-  personalityCardActive: {
-    borderColor: palette.softGlow,
-    backgroundColor: '#1D2440'
-  },
-  personalityTopRow: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    gap: 12
-  },
-  personalityCopy: {
-    flex: 1
-  },
-  nameRow: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    gap: 8,
-    justifyContent: 'space-between'
-  },
-  personalityName: {
+  topBarTitle: {
     color: palette.text,
     flex: 1,
-    fontSize: 16,
-    fontWeight: '900'
+    fontSize: 20,
+    fontWeight: '800',
+    textAlign: 'center'
   },
-  rarity: {
-    fontSize: 11,
-    fontWeight: '900'
-  },
-  personalityTag: {
-    color: palette.secondaryText,
-    fontSize: 12,
-    marginTop: 3
-  },
-  personalityIntro: {
-    color: palette.secondaryText,
-    fontSize: 13,
-    lineHeight: 19,
-    marginTop: 10
-  },
-  avatarGlow: {
+  iconButton: {
     alignItems: 'center',
-    backgroundColor: '#202943',
     borderRadius: 8,
-    borderWidth: 2,
+    height: 40,
     justifyContent: 'center',
-    shadowOffset: { height: 0, width: 0 },
-    shadowOpacity: 0.55,
-    shadowRadius: 12
+    minWidth: 40,
+    paddingHorizontal: 8
+  },
+  personalityRow: {
+    alignItems: 'center',
+    backgroundColor: palette.surface,
+    borderBottomColor: palette.surfaceMid,
+    borderBottomWidth: 1,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    minHeight: 84,
+    paddingHorizontal: 24,
+    paddingVertical: 14
+  },
+  personalityLeft: {
+    alignItems: 'center',
+    flex: 1,
+    flexDirection: 'row',
+    gap: 16,
+    minWidth: 0
+  },
+  avatar: {
+    alignItems: 'center',
+    backgroundColor: palette.surfaceHigh,
+    borderRadius: 999,
+    justifyContent: 'center'
   },
   avatarText: {
     color: palette.text,
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '900'
   },
-  avatarTextLarge: {
-    fontSize: 16
-  },
-  chatPanel: {
-    backgroundColor: palette.secondary,
-    borderColor: '#25304E',
-    borderRadius: 8,
-    borderWidth: 1,
+  personalityCopy: {
     flex: 1,
-    overflow: 'hidden'
+    minWidth: 0
   },
-  chatHeader: {
+  personalityName: {
+    color: palette.text,
+    fontSize: 17,
+    fontWeight: '800'
+  },
+  tagPill: {
+    alignSelf: 'flex-start',
+    backgroundColor: '#b8004314',
+    borderRadius: 5,
+    marginTop: 5,
+    maxWidth: '100%',
+    paddingHorizontal: 8,
+    paddingVertical: 3
+  },
+  tagText: {
+    color: palette.primary,
+    fontSize: 11,
+    fontWeight: '800',
+    textTransform: 'uppercase'
+  },
+  personalityDetail: {
+    color: palette.textMuted,
+    fontSize: 12,
+    fontWeight: '700',
+    marginTop: 5
+  },
+  rowChevron: {
+    color: palette.outline,
+    fontSize: 18,
+    fontWeight: '900',
+    paddingLeft: 16
+  },
+  chatTopBar: {
     alignItems: 'center',
-    backgroundColor: '#151C31',
-    borderBottomColor: '#25304E',
+    backgroundColor: palette.surface,
+    borderBottomColor: '#f4d7da',
     borderBottomWidth: 1,
     flexDirection: 'row',
-    gap: 12,
-    padding: 14
+    gap: 10,
+    height: 64,
+    paddingHorizontal: 12,
+    shadowColor: '#8a7173',
+    shadowOffset: { height: 4, width: 0 },
+    shadowOpacity: 0.12,
+    shadowRadius: 14
   },
-  chatHeaderCopy: {
-    flex: 1
+  chatTitleWrap: {
+    flex: 1,
+    minWidth: 0
   },
-  chatName: {
-    color: palette.text,
+  chatTitle: {
+    color: palette.primary,
     fontSize: 18,
     fontWeight: '900'
   },
-  chatStatus: {
-    color: palette.secondaryText,
-    fontSize: 12,
-    marginTop: 3
+  onlineText: {
+    color: palette.tertiary,
+    fontSize: 10,
+    fontWeight: '900',
+    marginTop: 2,
+    textTransform: 'uppercase'
   },
-  onlineDot: {
-    borderRadius: 6,
-    height: 12,
-    width: 12
+  chatBody: {
+    padding: 24,
+    paddingBottom: bottomNavHeight + 112
   },
-  messages: {
-    gap: 10,
-    padding: 14
+  datePill: {
+    alignSelf: 'center',
+    backgroundColor: palette.surfaceHigh,
+    borderColor: palette.outlineSoft,
+    borderRadius: 999,
+    borderWidth: 1,
+    marginBottom: 24,
+    paddingHorizontal: 12,
+    paddingVertical: 5
+  },
+  datePillText: {
+    color: palette.textMuted,
+    fontSize: 11,
+    fontWeight: '800'
   },
   messageRow: {
-    alignItems: 'flex-start'
+    alignItems: 'flex-start',
+    marginBottom: 16
   },
-  messageRowRight: {
+  messageRowOutgoing: {
     alignItems: 'flex-end'
   },
   messageBubble: {
-    borderRadius: 8,
-    maxWidth: '86%',
-    paddingHorizontal: 13,
-    paddingVertical: 10
+    borderRadius: 16,
+    maxWidth: '82%',
+    paddingHorizontal: 16,
+    paddingVertical: 12
   },
-  messageBubbleLeft: {
-    backgroundColor: palette.card,
-    borderColor: '#2B3658',
+  messageIncoming: {
+    backgroundColor: palette.surfaceHighest,
+    borderBottomLeftRadius: 4,
+    borderColor: palette.outlineSoft,
     borderWidth: 1
   },
-  messageBubbleRight: {
-    backgroundColor: palette.indigo
-  },
-  messageBubbleHighlighted: {
-    borderColor: palette.softGlow,
-    shadowColor: palette.softGlow,
-    shadowOpacity: 0.28,
-    shadowRadius: 10
+  messageOutgoing: {
+    backgroundColor: palette.primary,
+    borderBottomRightRadius: 4
   },
   messageText: {
-    color: palette.text,
+    color: palette.textMuted,
     fontSize: 14,
-    lineHeight: 20
+    lineHeight: 21
+  },
+  messageTextOutgoing: {
+    color: palette.onPrimary
+  },
+  messageTime: {
+    color: palette.outline,
+    fontSize: 10,
+    fontWeight: '600',
+    marginTop: 4
+  },
+  milestoneCard: {
+    backgroundColor: palette.surface,
+    borderColor: palette.outlineSoft,
+    borderRadius: 12,
+    borderWidth: 1,
+    gap: 12,
+    padding: 18,
+    shadowColor: '#8a7173',
+    shadowOffset: { height: 5, width: 0 },
+    shadowOpacity: 0.12,
+    shadowRadius: 18
+  },
+  milestoneIcon: {
+    alignItems: 'center',
+    backgroundColor: '#006a3b18',
+    borderRadius: 999,
+    height: 42,
+    justifyContent: 'center',
+    width: 42
+  },
+  milestoneCopy: {
+    gap: 2
+  },
+  milestoneTitle: {
+    color: palette.text,
+    fontSize: 16,
+    fontWeight: '900'
+  },
+  milestoneText: {
+    color: palette.textMuted,
+    fontSize: 13,
+    lineHeight: 19
+  },
+  progressTrack: {
+    backgroundColor: palette.surfaceHighest,
+    borderRadius: 999,
+    height: 10,
+    overflow: 'hidden'
+  },
+  progressFill: {
+    backgroundColor: palette.tertiary,
+    height: '100%',
+    width: '80%'
   },
   inputBar: {
     alignItems: 'center',
-    borderTopColor: '#25304E',
-    borderTopWidth: 1,
+    backgroundColor: '#ffffffff',
+    borderBottomColor: '#f4d7da',
+    borderBottomWidth: 1,
+    bottom: 0,
     flexDirection: 'row',
-    gap: 10,
-    padding: 12
+    gap: 12,
+    left: 0,
+    padding: 16,
+    position: 'absolute',
+    right: 0,
+    marginBottom: 15,
   },
-  staticInput: {
-    backgroundColor: '#0F1527',
-    borderColor: '#293453',
-    borderRadius: 8,
+  messageInput: {
+    backgroundColor: palette.surfaceLow,
+    borderColor: palette.outlineSoft,
+    borderRadius: 999,
     borderWidth: 1,
     color: palette.text,
     flex: 1,
     fontSize: 14,
-    minHeight: 46,
-    paddingHorizontal: 12
+    minHeight: 48,
+    paddingHorizontal: 18
   },
-  staticSend: {
+  micButton: {
     alignItems: 'center',
-    backgroundColor: palette.violet,
-    borderRadius: 8,
-    height: 46,
+    backgroundColor: palette.primary,
+    borderRadius: 999,
+    height: 48,
     justifyContent: 'center',
-    width: 50
+    width: 48
   },
-  staticSendText: {
+  genreRow: {
+    alignItems: 'center',
+    backgroundColor: palette.surface,
+    borderBottomColor: palette.surfaceHigh,
+    borderBottomWidth: 1,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    minHeight: 72,
+    paddingHorizontal: 24,
+    paddingVertical: 16
+  },
+  genreLeft: {
+    alignItems: 'center',
+    flex: 1,
+    flexDirection: 'row',
+    gap: 16,
+    minWidth: 0
+  },
+  genreIconBox: {
+    alignItems: 'center',
+    backgroundColor: '#e3175814',
+    borderRadius: 12,
+    height: 42,
+    justifyContent: 'center',
+    width: 42
+  },
+  genreCopy: {
+    flex: 1,
+    minWidth: 0
+  },
+  genreName: {
     color: palette.text,
-    fontSize: 18,
+    fontSize: 17,
+    fontWeight: '800'
+  },
+  genreDescription: {
+    color: palette.textMuted,
+    fontSize: 12,
+    marginTop: 2
+  },
+  addCircle: {
+    alignItems: 'center',
+    backgroundColor: palette.surfaceMid,
+    borderRadius: 999,
+    height: 34,
+    justifyContent: 'center',
+    marginLeft: 12,
+    width: 34
+  },
+  genreHeader: {
+    backgroundColor: palette.background,
+    borderBottomColor: palette.surfaceHigh,
+    borderBottomWidth: 1,
+    padding: 24
+  },
+  genreHeaderTitle: {
+    color: palette.text,
+    fontSize: 28,
     fontWeight: '900'
+  },
+  genreHeaderText: {
+    color: palette.textMuted,
+    fontSize: 14,
+    lineHeight: 20,
+    marginTop: 4
+  },
+  addButtonRound: {
+    alignItems: 'center',
+    backgroundColor: palette.primaryContainer,
+    borderRadius: 999,
+    height: 40,
+    justifyContent: 'center',
+    marginLeft: 16,
+    width: 40
+  },
+  addedText: {
+    color: palette.primary,
+    fontSize: 14,
+    fontWeight: '900',
+    paddingLeft: 18,
+    paddingRight: 4
+  },
+  searchHeader: {
+    backgroundColor: palette.background,
+    borderBottomColor: '#f4d7da',
+    borderBottomWidth: 1,
+    padding: 16
+  },
+  searchBox: {
+    alignItems: 'center',
+    backgroundColor: palette.surfaceLow,
+    borderColor: palette.outlineSoft,
+    borderRadius: 12,
+    borderWidth: 1,
+    flexDirection: 'row',
+    gap: 10,
+    minHeight: 48,
+    paddingHorizontal: 16
+  },
+  searchInput: {
+    color: palette.text,
+    flex: 1,
+    fontSize: 15,
+    minHeight: 48,
+    padding: 0
+  },
+  bottomNav: {
+    alignItems: 'center',
+    backgroundColor: palette.surface,
+    borderTopColor: '#f4d7da',
+    borderTopWidth: 1,
+    bottom: appBottomInset,
+    flexDirection: 'row',
+    height: bottomNavHeight,
+    justifyContent: 'space-around',
+    left: 0,
+    position: 'absolute',
+    right: 0,
+    shadowColor: '#8a7173',
+    shadowOffset: { height: -4, width: 0 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12
+  },
+  bottomNavItem: {
+    alignItems: 'center',
+    borderRadius: 8,
+    flex: 1,
+    gap: 2,
+    height: '100%',
+    justifyContent: 'center'
+  },
+  bottomNavIconSlot: {
+    alignItems: 'center',
+    height: 42,
+    justifyContent: 'center',
+    width: 62
+  },
+  bottomNavIconWrap: {
+    alignItems: 'center',
+    borderRadius: 999,
+    justifyContent: 'center'
+  },
+  bottomNavLabel: {
+    color: palette.textMuted,
+    fontSize: 12,
+    fontWeight: '600',
+    height: 16,
+    lineHeight: 16
+  },
+  bottomNavLabelActive: {
+    color: palette.primary,
+    fontWeight: '900'
+  },
+  menuBackdrop: {
+    backgroundColor: 'rgba(40, 23, 25, 0.18)',
+    flex: 1,
+    paddingRight: 12,
+    paddingTop: 72
+  },
+  menuSheet: {
+    alignSelf: 'flex-end',
+    backgroundColor: palette.surface,
+    borderColor: palette.outlineSoft,
+    borderRadius: 8,
+    borderWidth: 1,
+    minWidth: 210,
+    overflow: 'hidden',
+    shadowColor: '#8a7173',
+    shadowOffset: { height: 8, width: 0 },
+    shadowOpacity: 0.2,
+    shadowRadius: 20
+  },
+  menuItem: {
+    alignItems: 'center',
+    borderBottomColor: palette.surfaceMid,
+    borderBottomWidth: 1,
+    flexDirection: 'row',
+    gap: 12,
+    paddingHorizontal: 18,
+    paddingVertical: 16
+  },
+  menuItemText: {
+    color: palette.text,
+    fontSize: 16,
+    fontWeight: '700'
   },
   emptyState: {
     alignItems: 'center',
-    backgroundColor: palette.card,
-    borderColor: '#2B3658',
-    borderRadius: 8,
-    borderWidth: 1,
-    padding: 20
-  },
-  emptyChat: {
-    alignItems: 'center',
     flex: 1,
     justifyContent: 'center',
-    padding: 24
+    padding: 28
   },
   emptyTitle: {
     color: palette.text,
-    fontSize: 17,
+    fontSize: 22,
     fontWeight: '900',
     textAlign: 'center'
   },
   emptyText: {
-    color: palette.secondaryText,
-    fontSize: 13,
-    lineHeight: 19,
-    marginTop: 6,
+    color: palette.textMuted,
+    fontSize: 14,
+    lineHeight: 21,
+    marginTop: 8,
     textAlign: 'center'
   },
-  modalBackdrop: {
-    alignItems: 'center',
-    backgroundColor: 'rgba(5, 8, 18, 0.78)',
-    flex: 1,
-    justifyContent: 'center',
-    padding: 18
+  settingsBody: {
+    gap: 24,
+    padding: 24,
+    paddingBottom: bottomNavHeight + 42
   },
-  modalSheet: {
-    backgroundColor: palette.secondary,
-    borderColor: '#2B3658',
-    borderRadius: 8,
+  settingsTitle: {
+    color: palette.text,
+    fontSize: 32,
+    fontWeight: '900'
+  },
+  profileCard: {
+    alignItems: 'center',
+    backgroundColor: palette.surface,
+    borderColor: palette.outlineSoft,
+    borderRadius: 12,
     borderWidth: 1,
-    maxHeight: '88%',
-    maxWidth: 560,
-    padding: 14,
-    width: '100%'
-  },
-  modalHeader: {
-    alignItems: 'center',
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 10
+    gap: 16,
+    padding: 16,
+    shadowColor: '#8a7173',
+    shadowOffset: { height: 5, width: 0 },
+    shadowOpacity: 0.12,
+    shadowRadius: 18
   },
-  modalTitle: {
+  profileAvatar: {
+    alignItems: 'center',
+    backgroundColor: palette.surfaceHigh,
+    borderRadius: 999,
+    height: 62,
+    justifyContent: 'center',
+    width: 62
+  },
+  profileAvatarText: {
+    color: palette.primary,
+    fontSize: 17,
+    fontWeight: '900'
+  },
+  profileCopy: {
+    flex: 1,
+    minWidth: 0
+  },
+  profileName: {
+    color: palette.text,
+    fontSize: 22,
+    fontWeight: '800'
+  },
+  profileEmail: {
+    color: palette.textMuted,
+    fontSize: 13,
+    marginTop: 2
+  },
+  editProfileButton: {
+    backgroundColor: palette.primary,
+    borderRadius: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 9
+  },
+  editProfileText: {
+    color: palette.onPrimary,
+    fontSize: 12,
+    fontWeight: '900'
+  },
+  settingsGroup: {
+    backgroundColor: palette.surface,
+    borderColor: palette.outlineSoft,
+    borderRadius: 12,
+    borderWidth: 1,
+    overflow: 'hidden'
+  },
+  settingsGroupHeader: {
+    backgroundColor: palette.surfaceLow,
+    borderBottomColor: palette.outlineSoft,
+    borderBottomWidth: 1,
+    padding: 16
+  },
+  settingsGroupTitle: {
     color: palette.text,
     fontSize: 21,
     fontWeight: '900'
   },
-  closeButton: {
+  settingsRow: {
     alignItems: 'center',
-    backgroundColor: palette.card,
-    borderRadius: 8,
-    height: 36,
-    justifyContent: 'center',
-    width: 36
-  },
-  closeText: {
-    color: palette.text,
-    fontSize: 24,
-    fontWeight: '700',
-    lineHeight: 26
-  },
-  modalOption: {
-    alignItems: 'center',
-    backgroundColor: palette.card,
-    borderColor: '#2B3658',
-    borderRadius: 8,
-    borderWidth: 1,
+    borderBottomColor: palette.surfaceMid,
+    borderBottomWidth: 1,
     flexDirection: 'row',
-    gap: 11,
-    marginBottom: 9,
-    padding: 12
+    gap: 14,
+    minHeight: 74,
+    padding: 16
   },
-  modalIcon: {
-    color: palette.text,
-    fontSize: 23,
+  settingsIconBox: {
+    alignItems: 'center',
+    height: 34,
+    justifyContent: 'center',
     width: 34
   },
-  modalOptionCopy: {
-    flex: 1
+  settingsRowCopy: {
+    flex: 1,
+    minWidth: 0
   },
-  modalOptionTitle: {
+  settingsRowTitle: {
     color: palette.text,
-    fontSize: 15,
-    fontWeight: '900'
+    fontSize: 16,
+    fontWeight: '800'
   },
-  modalOptionText: {
-    color: palette.secondaryText,
-    fontSize: 12,
-    lineHeight: 17,
+  settingsRowSubtitle: {
+    color: palette.textMuted,
+    fontSize: 13,
+    lineHeight: 18,
     marginTop: 2
   },
-  customGenreBox: {
-    borderTopColor: '#25304E',
-    borderTopWidth: 1,
-    marginTop: 4,
-    paddingTop: 12
-  },
-  customLabel: {
-    color: palette.secondaryText,
-    fontSize: 12,
-    fontWeight: '900',
-    marginBottom: 8,
-    textTransform: 'uppercase'
-  },
-  customInputRow: {
-    flexDirection: 'row',
-    gap: 8
-  },
-  customInput: {
-    backgroundColor: '#0F1527',
-    borderColor: '#293453',
-    borderRadius: 8,
-    borderWidth: 1,
-    color: palette.text,
-    flex: 1,
-    fontSize: 14,
-    minHeight: 44,
-    paddingHorizontal: 12
-  },
-  smallActionButton: {
-    alignItems: 'center',
-    backgroundColor: palette.violet,
-    borderRadius: 8,
+  switchTrack: {
+    backgroundColor: palette.outlineSoft,
+    borderRadius: 999,
+    height: 26,
     justifyContent: 'center',
-    paddingHorizontal: 16
+    padding: 3,
+    width: 50
   },
-  smallActionText: {
-    color: palette.text,
-    fontSize: 14,
-    fontWeight: '900'
+  switchTrackEnabled: {
+    backgroundColor: palette.primaryContainer
   },
-  modalSectionLabel: {
-    color: palette.muted,
-    fontSize: 12,
-    fontWeight: '900',
-    marginBottom: 8,
-    marginTop: 8,
-    textTransform: 'uppercase'
+  switchKnob: {
+    backgroundColor: palette.surface,
+    borderRadius: 999,
+    height: 20,
+    width: 20
   },
-  optionAvatar: {
+  switchKnobEnabled: {
+    alignSelf: 'flex-end'
+  },
+  settingsTiles: {
+    gap: 16
+  },
+  smallSettingsCard: {
+    backgroundColor: palette.surface,
+    borderColor: palette.outlineSoft,
+    borderRadius: 12,
+    borderWidth: 1,
+    padding: 16
+  },
+  smallSettingsIcon: {
     alignItems: 'center',
-    backgroundColor: '#202943',
+    backgroundColor: '#b8004312',
     borderRadius: 8,
-    borderWidth: 2,
     height: 40,
     justifyContent: 'center',
+    marginBottom: 12,
     width: 40
   },
-  optionAvatarText: {
+  smallSettingsTitle: {
     color: palette.text,
+    fontSize: 20,
+    fontWeight: '900'
+  },
+  smallSettingsText: {
+    color: palette.textMuted,
+    fontSize: 13,
+    lineHeight: 19,
+    marginTop: 8
+  },
+  dangerBox: {
+    alignItems: 'center',
+    backgroundColor: '#ffdad64d',
+    borderColor: '#ba1a1a24',
+    borderRadius: 12,
+    borderWidth: 1,
+    flexDirection: 'row',
+    gap: 16,
+    justifyContent: 'space-between',
+    padding: 16
+  },
+  dangerCopy: {
+    flex: 1,
+    minWidth: 0
+  },
+  dangerTitle: {
+    color: palette.error,
+    fontSize: 20,
+    fontWeight: '900'
+  },
+  dangerText: {
+    color: palette.textMuted,
+    fontSize: 13,
+    marginTop: 2
+  },
+  signOutButton: {
+    borderColor: palette.error,
+    borderRadius: 8,
+    borderWidth: 1,
+    paddingHorizontal: 14,
+    paddingVertical: 9
+  },
+  signOutText: {
+    color: palette.error,
     fontSize: 12,
     fontWeight: '900'
   }
