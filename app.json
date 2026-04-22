@@ -1,0 +1,22 @@
+{
+  "expo": {
+    "name": "Winsome",
+    "slug": "winsome",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "dark",
+    "newArchEnabled": true,
+    "splash": {
+      "backgroundColor": "#0B1020"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.winsome.mvp"
+    },
+    "android": {
+      "edgeToEdgeEnabled": true,
+      "package": "com.winsome.mvp"
+    },
+    "web": {}
+  }
+}
